@@ -82,6 +82,12 @@ jobs:
             libwxgtk3.2-dev libxml2 lzop pngcrush schedtool squashfs-tools \
             imagemagick libbz2-dev lzma ncftp qemu-user-static libstdc++-10-dev libncurses6 python3 tar
 
+    - name: Install libtinfo5 (legacy prebuilt compat)
+      run: |
+        wget -q http://security.ubuntu.com/ubuntu/pool/universe/n/ncurses/libtinfo5_6.3-2ubuntu0.1_amd64.deb
+        sudo dpkg -i libtinfo5_6.3-2ubuntu0.1_amd64.deb
+        rm -f libtinfo5_6.3-2ubuntu0.1_amd64.deb
+
     - name: Setup SSH Keys
       if: ${{ startsWith(github.event.inputs.MANIFEST_URL, 'git@github.com') || 
           startsWith(github.event.inputs.DEVICE_TREE_URL, 'git@github.com') ||
@@ -140,11 +146,16 @@ jobs:
 
     - name: Switch to Python2
       run: |
-        sudo apt -y install python
-        sudo rm -rf /usr/bin/python
-        sudo ln -s /usr/bin/python2 /usr/bin/python
-        # sudo ln -s /usr/bin/python3 /usr/bin/python3
-      continue-on-error: true
+        BASE="http://security.ubuntu.com/ubuntu/pool/universe/p/python2.7"
+        VER="2.7.18-13ubuntu1.5"
+        TMP="$(mktemp -d)"
+        for pkg in libpython2.7-minimal python2.7-minimal libpython2.7-stdlib python2.7; do
+          wget -q "${BASE}/${pkg}_${VER}_amd64.deb" -P "$TMP"
+        done
+        sudo dpkg -i "$TMP"/*.deb || sudo apt-get install -f -y
+        rm -rf "$TMP"
+        sudo ln -sf /usr/bin/python2.7 /usr/bin/python2
+        sudo ln -sf /usr/bin/python2.7 /usr/bin/python
 
     - name: Building recovery
       run: |
